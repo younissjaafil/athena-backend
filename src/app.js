@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const testRoutes = require("./routes/testRoutes");
 
 const app = express();
 app.use(cors());
@@ -13,5 +14,8 @@ app.get("/status", (req, res) =>
     timestamp: new Date().toISOString(),
   })
 );
+
+// Routes
+app.use("/test", testRoutes);
 
 module.exports = app;
