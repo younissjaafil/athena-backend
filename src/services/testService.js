@@ -1,30 +1,127 @@
+const pool = require("../config/database");
+
 /**
- * Test service for frontend connectivity verification
+ * Test service for database interaction
  */
 class TestService {
   /**
-   * Get dummy test data
-   * @returns {Object} Test data with timestamp
+   * Get all users from testdbuser table
+   * @returns {Promise<Object>} User data from database
    */
-  getTestData() {
-    return {
-      success: true,
-      message: "Backend connection successful",
-      data: {
-        users: [
-          { id: 1, name: "Alice Johnson", email: "alice@example.com" },
-          { id: 2, name: "Bob Smith", email: "bob@example.com" },
-          { id: 3, name: "Carol Williams", email: "carol@example.com" },
-        ],
-        stats: {
-          totalUsers: 3,
-          activeConnections: 42,
-          uptime: "99.9%",
-        },
-      },
-      timestamp: new Date().toISOString(),
-      version: "1.0.0",
-    };
+  async getAllUsers() {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        "SELECT id, username, created_at FROM testdbuser ORDER BY id"
+      );
+
+      return {
+        success: true,
+        message: "Users retrieved successfully",
+        data: result.rows,
+        count: result.rowCount,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get user by ID
+   * @param {number} id - User ID
+   * @returns {Promise<Object>} User data
+   */
+  async getUserById(id) {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        "SELECT id, username, created_at FROM testdbuser WHERE id = $1",
+        [id]
+      );
+
+      if (result.rowCount === 0) {
+        return {
+          success: false,
+          message: "User not found",
+          data: null,
+        };
+      }
+
+      return {
+        success: true,
+        message: "User retrieved successfully",
+        data: result.rows[0],
+      };
+    } catch (error) {
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Create a new user
+   * @param {string} username - Username
+   * @param {string} userpassword - User password
+   * @returns {Promise<Object>} Created user data
+   */
+  async createUser(username, userpassword) {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        "INSERT INTO testdbuser (username, userpassword) VALUES ($1, $2) RETURNING id, username, created_at",
+        [username, userpassword]
+      );
+
+      return {
+        success: true,
+        message: "User created successfully",
+        data: result.rows[0],
+      };
+    } catch (error) {
+      if (error.code === "23505") {
+        // Unique violation
+        throw new Error("Username already exists");
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Delete user by ID
+   * @param {number} id - User ID
+   * @returns {Promise<Object>} Deletion result
+   */
+  async deleteUser(id) {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        "DELETE FROM testdbuser WHERE id = $1 RETURNING id, username",
+        [id]
+      );
+
+      if (result.rowCount === 0) {
+        return {
+          success: false,
+          message: "User not found",
+        };
+      }
+
+      return {
+        success: true,
+        message: "User deleted successfully",
+        data: result.rows[0],
+      };
+    } catch (error) {
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }
 
