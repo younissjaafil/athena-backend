@@ -1,1 +1,2 @@
-# athena-backend
+# LAI
+Language AI for 3VO
