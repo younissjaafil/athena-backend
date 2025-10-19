@@ -15,7 +15,7 @@ class AuthService {
     try {
       // Query user by user_id and password
       const result = await client.query(
-        `SELECT id, user_id, role, campus, department, created_at 
+        `SELECT id, user_id, name, role, campus, department, created_at 
          FROM userdata 
          WHERE user_id = $1 AND password = $2`,
         [user_id, password]
@@ -41,6 +41,7 @@ class AuthService {
         data: {
           id: user.id,
           user_id: user.user_id,
+          name: user.name,
           role: user.role,
           campus: user.campus,
           department: user.department,
@@ -61,14 +62,14 @@ class AuthService {
    * @returns {Promise<Object>} Created user data
    */
   async createUser(userData) {
-    const { user_id, role, campus, password, department } = userData;
+    const { user_id, name, role, campus, password, department } = userData;
     const client = await pool.connect();
     try {
       const result = await client.query(
-        `INSERT INTO userdata (user_id, role, campus, password, department) 
-         VALUES ($1, $2, $3, $4, $5) 
-         RETURNING id, user_id, role, campus, department, created_at`,
-        [user_id, role, campus, password, department]
+        `INSERT INTO userdata (user_id, name, role, campus, password, department) 
+         VALUES ($1, $2, $3, $4, $5, $6) 
+         RETURNING id, user_id, name, role, campus, department, created_at`,
+        [user_id, name, role, campus, password, department]
       );
 
       return {
@@ -96,7 +97,7 @@ class AuthService {
     const client = await pool.connect();
     try {
       const result = await client.query(
-        `SELECT id, user_id, role, campus, department, created_at 
+        `SELECT id, user_id, name, role, campus, department, created_at 
          FROM userdata 
          WHERE user_id = $1`,
         [user_id]
@@ -130,7 +131,7 @@ class AuthService {
     const client = await pool.connect();
     try {
       const result = await client.query(
-        `SELECT id, user_id, role, campus, department, created_at 
+        `SELECT id, user_id, name, role, campus, department, created_at 
          FROM userdata 
          ORDER BY id`
       );

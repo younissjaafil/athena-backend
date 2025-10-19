@@ -44,20 +44,21 @@ router.post("/login", async (req, res) => {
  */
 router.post("/register", async (req, res) => {
   try {
-    const { user_id, role, campus, password, department } = req.body;
+    const { user_id, name, role, campus, password, department } = req.body;
 
     // Validation
-    if (!user_id || !role || !campus || !password || !department) {
+    if (!user_id || !name || !role || !campus || !password || !department) {
       return res.status(400).json({
         success: false,
         message:
-          "All fields are required: user_id, role, campus, password, department",
+          "All fields are required: user_id, name, role, campus, password, department",
         data: null,
       });
     }
 
     const result = await authService.createUser({
       user_id,
+      name,
       role,
       campus,
       password,
