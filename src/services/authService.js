@@ -15,8 +15,8 @@ class AuthService {
     try {
       // Query user by user_id and password
       const result = await client.query(
-        `SELECT id, user_id, name, role, campus, department, created_at 
-         FROM userdata 
+        `SELECT id, user_id, name, email, role, campus, created_at, updated_at 
+         FROM users 
          WHERE user_id = $1 AND password = $2`,
         [user_id, password]
       );
@@ -31,10 +31,6 @@ class AuthService {
 
       const user = result.rows[0];
 
-      // Determine redirect based on role
-      const isStudent = user.role.toLowerCase() === "student";
-      const redirectTo = isStudent ? "normal-user" : "creator";
-
       return {
         success: true,
         message: "Login successful",
@@ -42,11 +38,11 @@ class AuthService {
           id: user.id,
           user_id: user.user_id,
           name: user.name,
+          email: user.email,
           role: user.role,
           campus: user.campus,
-          department: user.department,
           created_at: user.created_at,
-          redirectTo: redirectTo,
+          updated_at: user.updated_at,
         },
       };
     } catch (error) {
@@ -62,14 +58,14 @@ class AuthService {
    * @returns {Promise<Object>} Created user data
    */
   async createUser(userData) {
-    const { user_id, name, role, campus, password, department } = userData;
+    const { user_id, name, email, role, campus, password } = userData;
     const client = await pool.connect();
     try {
       const result = await client.query(
-        `INSERT INTO userdata (user_id, name, role, campus, password, department) 
+        `INSERT INTO users (user_id, name, email, role, campus, password) 
          VALUES ($1, $2, $3, $4, $5, $6) 
-         RETURNING id, user_id, name, role, campus, department, created_at`,
-        [user_id, name, role, campus, password, department]
+         RETURNING id, user_id, name, email, role, campus, created_at`,
+        [user_id, name, email, role, campus, password]
       );
 
       return {
@@ -80,7 +76,7 @@ class AuthService {
     } catch (error) {
       if (error.code === "23505") {
         // Unique violation
-        throw new Error("User ID already exists");
+        throw new Error("User ID or email already exists");
       }
       throw error;
     } finally {
@@ -97,8 +93,8 @@ class AuthService {
     const client = await pool.connect();
     try {
       const result = await client.query(
-        `SELECT id, user_id, name, role, campus, department, created_at 
-         FROM userdata 
+        `SELECT id, user_id, name, email, role, campus, created_at, updated_at 
+         FROM users 
          WHERE user_id = $1`,
         [user_id]
       );
@@ -131,14 +127,43 @@ class AuthService {
     const client = await pool.connect();
     try {
       const result = await client.query(
-        `SELECT id, user_id, name, role, campus, department, created_at 
-         FROM userdata 
+        `SELECT id, user_id, name, email, role, campus, created_at, updated_at 
+         FROM users 
          ORDER BY id`
       );
 
       return {
         success: true,
         message: "Users retrieved successfully",
+        data: result.rows,
+        count: result.rowCount,
+      };
+    } catch (error) {
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get users by role
+   * @param {string} role - User role (student, instructor, admin)
+   * @returns {Promise<Object>} Users with specified role
+   */
+  async getUsersByRole(role) {
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        `SELECT id, user_id, name, email, role, campus, created_at, updated_at 
+         FROM users 
+         WHERE role = $1
+         ORDER BY name`,
+        [role]
+      );
+
+      return {
+        success: true,
+        message: `${role}s retrieved successfully`,
         data: result.rows,
         count: result.rowCount,
       };

@@ -44,14 +44,23 @@ router.post("/login", async (req, res) => {
  */
 router.post("/register", async (req, res) => {
   try {
-    const { user_id, name, role, campus, password, department } = req.body;
+    const { user_id, name, email, role, campus, password } = req.body;
 
     // Validation
-    if (!user_id || !name || !role || !campus || !password || !department) {
+    if (!user_id || !name || !email || !role || !password) {
       return res.status(400).json({
         success: false,
-        message:
-          "All fields are required: user_id, name, role, campus, password, department",
+        message: "Required fields: user_id, name, email, role, password",
+        data: null,
+      });
+    }
+
+    // Validate role
+    const validRoles = ["student", "instructor", "admin"];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Role must be one of: student, instructor, admin",
         data: null,
       });
     }
@@ -59,17 +68,17 @@ router.post("/register", async (req, res) => {
     const result = await authService.createUser({
       user_id,
       name,
+      email,
       role,
       campus,
       password,
-      department,
     });
 
     res.status(201).json(result);
   } catch (error) {
     console.error("Registration error:", error);
 
-    if (error.message === "User ID already exists") {
+    if (error.message.includes("already exists")) {
       return res.status(400).json({
         success: false,
         message: error.message,
@@ -121,6 +130,36 @@ router.get("/users", async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error("Get all users error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error retrieving users",
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * @route   GET /auth/users/role/:role
+ * @desc    Get users by role (student, instructor, admin)
+ * @access  Public
+ */
+router.get("/users/role/:role", async (req, res) => {
+  try {
+    const { role } = req.params;
+
+    // Validate role
+    const validRoles = ["student", "instructor", "admin"];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Role must be one of: student, instructor, admin",
+      });
+    }
+
+    const result = await authService.getUsersByRole(role);
+    res.json(result);
+  } catch (error) {
+    console.error("Get users by role error:", error);
     res.status(500).json({
       success: false,
       message: "Server error retrieving users",
